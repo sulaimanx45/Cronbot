@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "8c538de1",
+      "name": "tea",
+      "enabled": false,
+      "schedule": {
+        "kind": "at",
+        "atMs": 1771564972785,
+        "everyMs": null,
+        "expr": null,
+        "tz": null
+      },
+      "payload": {
+        "message": "drink tea"
+      },
+      "state": {
+        "nextRunAtMs": null,
+        "lastRunAtMs": 1771564972786,
+        "lastStatus": "ok",
+        "lastError": null
+      },
+      "createdAtMs": 1771564956414,
+      "updatedAtMs": 1771564972790,
+      "deleteAfterRun": false
+    },
+    {
+      "id": "3199b9c1",
+      "name": "washroom",
+      "enabled": true,
+      "schedule": {
+        "kind": "every",
+        "atMs": null,
+        "everyMs": 10000,
+        "expr": null,
+        "tz": null
+      },
+      "payload": {
+        "message": "go to washroom"
+      },
+      "state": {
+        "nextRunAtMs": 1771565003715,
+        "lastRunAtMs": 1771564993712,
+        "lastStatus": "ok",
+        "lastError": null
+      },
+      "createdAtMs": 1771564973695,
+      "updatedAtMs": 1771564993715,
+      "deleteAfterRun": false
+    }
+  ]
+}

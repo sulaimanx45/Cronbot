@@ -73,11 +73,7 @@ class CronService:
                             tz=j["schedule"].get("tz"),
                         ),
                         payload=CronPayload(
-                            kind=j["payload"].get("kind", "agent_turn"),
                             message=j["payload"].get("message", ""),
-                            deliver=j["payload"].get("deliver", False),
-                            channel=j["payload"].get("channel"),
-                            to=j["payload"].get("to"),
                         ),
                         state=CronJobState(
                             next_run_at_ms=j.get("state", {}).get("nextRunAtMs"),
@@ -120,11 +116,7 @@ class CronService:
                         "tz": j.schedule.tz,
                     },
                     "payload": {
-                        "kind": j.payload.kind,
                         "message": j.payload.message,
-                        "deliver": j.payload.deliver,
-                        "channel": j.payload.channel,
-                        "to": j.payload.to,
                     },
                     "state": {
                         "nextRunAtMs": j.state.next_run_at_ms,
@@ -139,7 +131,6 @@ class CronService:
                 for j in self._store.jobs
             ]
         }
-
         self.store_path.write_text(json.dumps(data, indent=2))
 
     async def start(self) -> None:
@@ -233,7 +224,6 @@ class CronService:
         job.state.last_run_at_ms = start_ms
         job.updated_at_ms = _now_ms()
 
-        # Handle one-shot jobs
         if job.schedule.kind == "at":
             if job.delete_after_run:
                 self._store.jobs = [j for j in self._store.jobs if j.id != job.id]
@@ -254,9 +244,6 @@ class CronService:
         name: str,
         schedule: CronSchedule,
         message: str,
-        deliver: bool = False,
-        channel: str | None = None,
-        to: str | None = None,
         delete_after_run: bool = False,
     ) -> CronJob:
         """Add a new job."""
@@ -269,11 +256,7 @@ class CronService:
             enabled=True,
             schedule=schedule,
             payload=CronPayload(
-                kind="agent_turn",
                 message=message,
-                deliver=deliver,
-                channel=channel,
-                to=to,
             ),
             state=CronJobState(next_run_at_ms=_compute_next_run(schedule, now)),
             created_at_ms=now,
@@ -294,47 +277,8 @@ class CronService:
         before = len(store.jobs)
         store.jobs = [j for j in store.jobs if j.id != job_id]
         removed = len(store.jobs) < before
-
         if removed:
             self._save_store()
             self._arm_timer()
             logger.info(f"Cron: removed job {job_id}")
         return removed
-
-    def enable_job(self, job_id: str, enabled: bool = True) -> CronJob | None:
-        """Enable or disable a job."""
-        store = self._load_store()
-        for job in store.jobs:
-            if job.id == job_id:
-                job.enabled = enabled
-                job.updated_at_ms = _now_ms()
-                if enabled:
-                    job.state.next_run_at_ms = _compute_next_run(job.schedule, _now_ms())
-                else:
-                    job.state.next_run_at_ms = None
-                self._save_store()
-                self._arm_timer()
-                return job
-        return None
-
-    async def run_job(self, job_id: str, force: bool = False) -> bool:
-        """Manually run a job."""
-        store = self._load_store()
-        for job in store.jobs:
-            if job.id == job_id:
-                if not force and not job.enabled:
-                    return False
-                await self._execute_job(job)
-                self._save_store()
-                self._arm_timer()
-                return True
-        return False
-
-    def status(self) -> dict:
-        """Get service status."""
-        store = self._load_store()
-        return {
-            "enabled": self._running,
-            "jobs": len(store.jobs),
-            "next_wake_at_ms": self._get_next_wake_ms(),
-        }

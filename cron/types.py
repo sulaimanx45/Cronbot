@@ -5,7 +5,7 @@ from typing import Literal
 @dataclass
 class CronSchedule:
     """Schedule definition for a cron job."""
-    kind: Literal["at", "every", "cron"]
+    kind: Literal["at", "every"]
     at_ms: int | None = None
     every_ms: int | None = None
     expr: str | None = None
@@ -14,11 +14,7 @@ class CronSchedule:
 @dataclass
 class CronPayload:
     """What to do when the job runs."""
-    kind: Literal["system_event", "agent_turn"] = "agent_turn"
     message: str = ""
-    deliver: bool = False
-    channel: str | None = None
-    to: str | None = None
 
 @dataclass
 class CronJobState:
