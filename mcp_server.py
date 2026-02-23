@@ -32,9 +32,6 @@ async def add_job(name: str, schedule_type: str, value: str, message: str) -> st
     - "after" → run once after N seconds from now (value = seconds)
     - "at" → run once at a specific date & time
              (value format: "DD Mon YYYY HH:MM")
-
-    Returns:
-        Job ID of the created job.
     """
 
     if schedule_type == "every":
@@ -73,9 +70,7 @@ async def add_job(name: str, schedule_type: str, value: str, message: str) -> st
 async def list_jobs() -> list:
     """
     List all jobs in the scheduler.
-
-    Returns:
-        List of job objects with id, name, next run time.
+    
     """
 
     jobs = cron.list_jobs(include_disabled=True)
