@@ -272,6 +272,7 @@ class CronService:
         return job
 
     def remove_job(self, job_id: str) -> bool:
+
         """Remove a job by ID."""
         store = self._load_store()
         before = len(store.jobs)
@@ -282,3 +283,39 @@ class CronService:
             self._arm_timer()
             logger.info(f"Cron: removed job {job_id}")
         return removed
+
+    def update_job(
+        self,
+        job_id: str,
+        *,
+        name: str | None = None,
+        schedule: CronSchedule | None = None,
+        message: str | None = None,
+    ) -> CronJob | None:
+        """Update an existing job."""
+        store = self._load_store()
+
+        for job in store.jobs:
+            if job.id == job_id:
+
+                # ---- Update fields if provided ----
+                if name is not None:
+                    job.name = name
+
+                if schedule is not None:
+                    job.schedule = schedule
+                    job.state.next_run_at_ms = _compute_next_run(
+                        schedule,
+                        _now_ms())
+
+                if message is not None:
+                    job.payload.message = message
+
+                job.updated_at_ms = _now_ms()
+                self._save_store()
+                self._arm_timer()
+
+                logger.info(f"Cron: updated job '{job.name}' ({job.id})")
+                return job
+
+        return None
