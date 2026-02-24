@@ -1,10 +1,12 @@
-from pathlib import Path
+import os
 import asyncio
 from datetime import datetime
 import time
 from cron import CronService, CronSchedule
 from utils.email_utils import EmailSender
 from fastmcp import FastMCP
+from dotenv import load_dotenv
+load_dotenv()
 
 
 mcp = FastMCP("cron-reminder-server")
@@ -17,8 +19,8 @@ async def handle_job(job):
         
     if False: # Disable email sending for now
         EmailSender(
-            username="rmznmqsd4@gmail.com",
-            password="ktdt tefg lrvn vudi"
+            username=os.getenv("EMAIL_USERNAME"),
+            password=os.getenv("APP_PASSWORD")
         ).send_email(
             to_email=job.user_email,
             subject=job.name,
@@ -28,11 +30,17 @@ async def handle_job(job):
     print(f"\n Reminder: {message}")
 
 cron = CronService(
-    store_path=Path("cron_store.json"),
     on_job=handle_job)
 
 async def startup():
     await cron.start()
+    # add_job_response = await add_job(
+    #     user_email="test@gmail.com",
+    #     name="Test Job",
+    #     schedule_type="after",
+    #     value="30",
+    #     message="This is a test job.")
+    # print(" Added Job:", add_job_response)
 
 @mcp.tool()
 async def add_job(user_email:str, name: str, schedule_type: str, value: str, message: str) -> str:
@@ -69,7 +77,6 @@ async def add_job(user_email:str, name: str, schedule_type: str, value: str, mes
     else:
         raise ValueError("Invalid schedule_type")
 
-    print(f"user_email: {user_email}")
     job = cron.add_job(
         user_email=user_email,
         name=name,
@@ -136,5 +143,5 @@ async def update_job(
 
 
 if __name__ == "__main__":
-    asyncio.run(startup()) 
+    asyncio.run(startup())
     mcp.run(host="0.0.0.0", port=8001, transport="sse")
