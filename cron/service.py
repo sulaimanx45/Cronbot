@@ -8,6 +8,20 @@ from pathlib import Path
 from typing import Any, Callable, Coroutine
 from loguru import logger
 from cron.types import CronJob, CronJobState, CronPayload, CronSchedule, CronStore
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+def ms_to_pakistan_time(ms_timestamp: int) -> datetime:
+    # Convert milliseconds to seconds
+    seconds = ms_timestamp / 1000
+    
+    # Create UTC datetime
+    utc_time = datetime.fromtimestamp(seconds, tz=timezone.utc)
+    
+    # Convert to Pakistan Time
+    pakistan_time = utc_time.astimezone(ZoneInfo("Asia/Karachi"))
+    
+    return pakistan_time
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
@@ -63,6 +77,7 @@ class CronService:
                 for j in data.get("jobs", []):
                     jobs.append(CronJob(
                         id=j["id"],
+                        user_email=j["user_email"],
                         name=j["name"],
                         enabled=j.get("enabled", True),
                         schedule=CronSchedule(
@@ -106,6 +121,7 @@ class CronService:
             "jobs": [
                 {
                     "id": j.id,
+                    "user_email": j.user_email,
                     "name": j.name,
                     "enabled": j.enabled,
                     "schedule": {
@@ -136,7 +152,7 @@ class CronService:
     async def start(self) -> None:
         """Start the cron service."""
         self._running = True
-        self._load_store()
+        store = self._load_store()
         self._recompute_next_runs()
         self._save_store()
         self._arm_timer()
@@ -151,13 +167,20 @@ class CronService:
 
     def _recompute_next_runs(self) -> None:
         """Recompute next run times for all enabled jobs."""
+        
         if not self._store:
             return
         now = _now_ms()
+        pkt_time = ms_to_pakistan_time(now)
+
+        print("Pakistan Time:", pkt_time.strftime("%Y-%m-%d %H:%M:%S %Z"))
+        
         for job in self._store.jobs:
             if job.enabled:
                 job.state.next_run_at_ms = _compute_next_run(job.schedule, now)
-
+                pkt_time = ms_to_pakistan_time(job.state.next_run_at_ms)
+                print(f"{job.name}: {pkt_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                
     def _get_next_wake_ms(self) -> int | None:
         """Get the earliest next run time across all jobs."""
         if not self._store:
@@ -241,6 +264,7 @@ class CronService:
 
     def add_job(
         self,
+        user_email: str,
         name: str,
         schedule: CronSchedule,
         message: str,
@@ -252,6 +276,7 @@ class CronService:
 
         job = CronJob(
             id=str(uuid.uuid4())[:8],
+            user_email=user_email,
             name=name,
             enabled=True,
             schedule=schedule,

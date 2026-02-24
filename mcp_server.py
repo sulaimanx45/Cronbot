@@ -3,7 +3,9 @@ import asyncio
 from datetime import datetime
 import time
 from cron import CronService, CronSchedule
+from utils.email_utils import EmailSender
 from fastmcp import FastMCP
+
 
 mcp = FastMCP("cron-reminder-server")
 
@@ -12,7 +14,17 @@ async def handle_job(job):
     message = job.payload.message
     if not message:
         print("No message provided.")
-        return
+        
+    if False: # Disable email sending for now
+        EmailSender(
+            username="rmznmqsd4@gmail.com",
+            password="ktdt tefg lrvn vudi"
+        ).send_email(
+            to_email=job.user_email,
+            subject=job.name,
+            body=message
+        )
+    
     print(f"\n Reminder: {message}")
 
 cron = CronService(
@@ -23,7 +35,7 @@ async def startup():
     await cron.start()
 
 @mcp.tool()
-async def add_job(name: str, schedule_type: str, value: str, message: str) -> str:
+async def add_job(user_email:str, name: str, schedule_type: str, value: str, message: str) -> str:
     """
     Add a new reminder job.
 
@@ -57,7 +69,9 @@ async def add_job(name: str, schedule_type: str, value: str, message: str) -> st
     else:
         raise ValueError("Invalid schedule_type")
 
+    print(f"user_email: {user_email}")
     job = cron.add_job(
+        user_email=user_email,
         name=name,
         schedule=schedule,
         message=message
@@ -67,7 +81,7 @@ async def add_job(name: str, schedule_type: str, value: str, message: str) -> st
 
 
 @mcp.tool()
-async def list_jobs() -> list:
+async def list_jobs(user_email:str) -> list:
     """
     List all jobs in the scheduler.
     
@@ -81,12 +95,12 @@ async def list_jobs() -> list:
             "name": j.name,
             "next_run_at_ms": j.state.next_run_at_ms
         }
-        for j in jobs
+        for j in jobs if j.user_email == user_email
     ]
 
 
 @mcp.tool()
-async def delete_job(job_id: str) -> bool:
+async def delete_job(user_email:str, job_id: str) -> bool:
     """
     Delete a job by its ID.
 
@@ -97,6 +111,7 @@ async def delete_job(job_id: str) -> bool:
 
 @mcp.tool()
 async def update_job(
+    user_email: str,
     job_id: str,
     name: str,
     schedule_type: str,
@@ -122,4 +137,4 @@ async def update_job(
 
 if __name__ == "__main__":
     asyncio.run(startup()) 
-    mcp.run(host="0.0.0.0", port=8000, transport="sse")
+    mcp.run(host="0.0.0.0", port=8001, transport="sse")

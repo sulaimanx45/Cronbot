@@ -28,6 +28,7 @@ class CronJobState:
 class CronJob:
     """A scheduled job."""
     id: str
+    user_email:str
     name: str
     enabled: bool = True
     schedule: CronSchedule = field(default_factory=lambda: CronSchedule(kind="every"))
