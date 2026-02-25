@@ -1,11 +1,9 @@
 from pathlib import Path
-import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
 import time
 from cron import CronService, CronSchedule
 from fastmcp import FastMCP
-
-mcp = FastMCP("cron-reminder-server")
 
 async def handle_job(job):
     """What happens when a job runs"""
@@ -19,8 +17,17 @@ cron = CronService(
     store_path=Path("cron_store.json"),
     on_job=handle_job)
 
-async def startup():
+@asynccontextmanager
+async def lifespan(app):
+    print("Starting Cron service...")
     await cron.start()
+
+    yield
+
+    print("Stopping Cron service...")
+    await cron.stop()
+
+mcp = FastMCP("cron-reminder-server",lifespan=lifespan)
 
 @mcp.tool()
 async def add_job(name: str, schedule_type: str, value: str, message: str) -> str:
@@ -70,7 +77,7 @@ async def add_job(name: str, schedule_type: str, value: str, message: str) -> st
 async def list_jobs() -> list:
     """
     List all jobs in the scheduler.
-    
+
     """
 
     jobs = cron.list_jobs(include_disabled=True)
@@ -121,5 +128,4 @@ async def update_job(
 
 
 if __name__ == "__main__":
-    asyncio.run(startup()) 
     mcp.run(host="0.0.0.0", port=8000, transport="sse")

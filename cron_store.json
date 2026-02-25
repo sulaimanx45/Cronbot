@@ -1,4 +1,29 @@
 {
   "version": 1,
-  "jobs": []
+  "jobs": [
+    {
+      "id": "ed3a5c1d",
+      "name": "test",
+      "enabled": true,
+      "schedule": {
+        "kind": "every",
+        "atMs": null,
+        "everyMs": 5000,
+        "expr": null,
+        "tz": null
+      },
+      "payload": {
+        "message": "Test job running every 5 seconds"
+      },
+      "state": {
+        "nextRunAtMs": 1772004918459,
+        "lastRunAtMs": 1772004913455,
+        "lastStatus": "ok",
+        "lastError": null
+      },
+      "createdAtMs": 1772004473380,
+      "updatedAtMs": 1772004913459,
+      "deleteAfterRun": false
+    }
+  ]
 }
